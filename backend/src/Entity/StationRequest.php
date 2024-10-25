@@ -27,11 +27,20 @@ class StationRequest implements
     protected int $station_id;
 
     #[ORM\ManyToOne]
-    #[ORM\JoinColumn(name: 'track_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
-    protected StationMedia $track;
+    #[ORM\JoinColumn(name: 'track_id', referencedColumnName: 'id', nullable: true, onDelete: 'CASCADE')]
+    protected ?StationMedia $track;
 
-    #[ORM\Column(nullable: false, insertable: false, updatable: false)]
-    protected int $track_id;
+    #[ORM\Column(length: 255, nullable: false)]
+    protected string $first_name;
+
+    #[ORM\Column(length: 255, nullable: false)]
+    protected string $email;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    protected ?string $text;
+
+    #[ORM\Column(nullable: true, insertable: false, updatable: false)]
+    protected ?int $track_id;
 
     #[ORM\Column]
     protected int $timestamp;
@@ -47,11 +56,17 @@ class StationRequest implements
 
     public function __construct(
         Station $station,
-        StationMedia $track,
+        ?StationMedia $track,
+        string $firstName,
+        string $email,
+        ?string $text,
         string $ip = null,
         bool $skipDelay = false
     ) {
         $this->station = $station;
+        $this->first_name = $firstName;
+        $this->email = $email;
+        $this->text = $text;
         $this->track = $track;
 
         $this->timestamp = time();
@@ -64,9 +79,24 @@ class StationRequest implements
         return $this->station;
     }
 
-    public function getTrack(): StationMedia
+    public function getTrack(): ?StationMedia
     {
         return $this->track;
+    }
+
+    public function getFirstName(): string
+    {
+        return $this->first_name;
+    }
+
+    public function getEmail(): string
+    {
+        return $this->email;
+    }
+
+    public function getText(): ?string
+    {
+        return $this->text;
     }
 
     public function getTimestamp(): int

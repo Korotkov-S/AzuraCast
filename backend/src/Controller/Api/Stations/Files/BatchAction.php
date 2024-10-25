@@ -294,7 +294,7 @@ final class BatchAction implements SingleActionInterface
                 /** @var Station $stationRef */
                 $stationRef = $this->em->getReference(Station::class, $station->getId());
 
-                $newRequest = new StationRequest($stationRef, $media, null, true);
+                $newRequest = new StationRequest($stationRef, $media, '', '', null, null, true);
                 $this->em->persist($newRequest);
             }
         } else {

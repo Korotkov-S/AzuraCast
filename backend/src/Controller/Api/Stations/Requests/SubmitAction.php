@@ -21,6 +21,7 @@ use App\OpenApi;
 use App\Radio\Frontend\Blocklist\BlocklistParser;
 use App\Service\DeviceDetector;
 use App\Utilities\Types;
+use InvalidArgumentException;
 use OpenApi\Attributes as OA;
 use Psr\Http\Message\ResponseInterface;
 
@@ -29,6 +30,28 @@ use Psr\Http\Message\ResponseInterface;
         path: '/station/{station_id}/request/{request_id}',
         operationId: 'submitSongRequest',
         description: 'Submit a song request.',
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: 'first_name',
+                        type: 'string',
+                        example: 'John Wayne'
+                    ),
+                    new OA\Property(
+                        property: 'email',
+                        type: 'string',
+                        example: 'user@example.com'
+                    ),
+                    new OA\Property(
+                        property: 'text',
+                        type: 'string',
+                        example: null
+                    ),
+                ]
+            )
+        ),
         tags: ['Stations: Song Requests'],
         parameters: [
             new OA\Parameter(ref: OpenApi::REF_STATION_ID_REQUIRED),
@@ -36,7 +59,7 @@ use Psr\Http\Message\ResponseInterface;
                 name: 'request_id',
                 description: 'The requestable song ID',
                 in: 'path',
-                required: true,
+                required: false,
                 schema: new OA\Schema(type: 'string')
             ),
         ],
@@ -66,7 +89,13 @@ final class SubmitAction implements SingleActionInterface
         Response $response,
         array $params
     ): ResponseInterface {
-        $trackId = Types::string($params['media_id']);
+        $trackId = isset($params['media_id']) ? Types::string($params['media_id']) : null;
+
+        $parsedBody = (array)$request->getParsedBody();
+
+        if (!isset($parsedBody['first_name']) || !isset($parsedBody['email'])) {
+            throw new InvalidArgumentException('No first_name and/or email specified.');
+        }
 
         // Verify that the station supports requests.
         $station = $request->getStation();
@@ -101,30 +130,34 @@ final class SubmitAction implements SingleActionInterface
             );
         }
 
-        // Verify that Track ID exists with station.
-        $mediaItem = $this->mediaRepo->requireByUniqueId($trackId, $station);
+        if (null !== $trackId) {
+            // Verify that Track ID exists with station.
+            $mediaItem = $this->mediaRepo->requireByUniqueId($trackId, $station);
 
-        if (!$mediaItem->isRequestable()) {
-            throw CannotCompleteActionException::submitRequest(
-                $request,
-                __('This track is not requestable.')
-            );
-        }
+            if (!$mediaItem->isRequestable()) {
+                throw CannotCompleteActionException::submitRequest(
+                    $request,
+                    __('This track is not requestable.')
+                );
+            }
 
-        // Check if the song is already enqueued as a request.
-        if ($this->requestRepo->isTrackPending($mediaItem, $station)) {
-            throw CannotCompleteActionException::submitRequest(
-                $request,
-                __('This song was already requested and will play soon.')
-            );
-        }
+            // Check if the song is already enqueued as a request.
+            if ($this->requestRepo->isTrackPending($mediaItem, $station)) {
+                throw CannotCompleteActionException::submitRequest(
+                    $request,
+                    __('This song was already requested and will play soon.')
+                );
+            }
 
-        // Check the most recent song history.
-        if ($this->requestRepo->hasPlayedRecently($mediaItem, $station)) {
-            throw CannotCompleteActionException::submitRequest(
-                $request,
-                __('This song or artist has been played too recently. Wait a while before requesting it again.')
-            );
+            // Check the most recent song history.
+            if ($this->requestRepo->hasPlayedRecently($mediaItem, $station)) {
+                throw CannotCompleteActionException::submitRequest(
+                    $request,
+                    __('This song or artist has been played too recently. Wait a while before requesting it again.')
+                );
+            }
+        } else {
+            $mediaItem = null;
         }
 
         if (!$isAuthenticated) {
@@ -156,7 +189,14 @@ final class SubmitAction implements SingleActionInterface
         }
 
         // Save request locally.
-        $record = new StationRequest($station, $mediaItem, $ip);
+        $record = new StationRequest(
+            station: $station,
+            track: $mediaItem,
+            firstName: $parsedBody['first_name'],
+            email: $parsedBody['email'],
+            text: $parsedBody['text'] ?? null,
+            ip: $ip
+        );
         $this->em->persist($record);
         $this->em->flush();
 

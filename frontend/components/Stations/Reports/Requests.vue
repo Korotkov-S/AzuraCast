@@ -120,6 +120,9 @@ const fields: DataTableField[] = [
     {key: 'timestamp', label: $gettext('Date Requested'), sortable: false},
     {key: 'played_at', label: $gettext('Date Played'), sortable: false},
     {key: 'song_title', isRowHeader: true, label: $gettext('Song Title'), sortable: false},
+    {key: 'first_name', label: $gettext('First name'), sortable: false},
+    {key: 'email', label: $gettext('Email'), sortable: false},
+    {key: 'text', label: $gettext('Text'), sortable: false},
     {key: 'ip', label: $gettext('Requester IP'), sortable: false},
     {key: 'actions', label: $gettext('Actions'), sortable: false}
 ];
