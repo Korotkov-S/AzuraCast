@@ -157,7 +157,7 @@ final class Queue
             $this->logger->debug(
                 'Request must be marked unplayed.',
                 [
-                    'media' => $request->getTrack()->getTitle(),
+                    'media' => $request->getTrack()?->getTitle() ?? '-',
                     'Request id' => $request->getId(),
 
                 ]

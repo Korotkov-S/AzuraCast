@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use RuntimeException;
 
 #[
     ORM\Entity,
@@ -280,9 +281,15 @@ class StationQueue implements
 
     public static function fromRequest(StationRequest $request): self
     {
-        $sq = new self($request->getStation(), $request->getTrack());
+        $track = $request->getTrack();
+
+        if (null === $track) {
+            throw new RuntimeException('Request track is not set.');
+        }
+
+        $sq = new self($request->getStation(), $track);
         $sq->setRequest($request);
-        $sq->setMedia($request->getTrack());
+        $sq->setMedia($track);
         return $sq;
     }
 }

@@ -87,8 +87,14 @@ final class StationRequestRepository extends AbstractStationBasedRepository
         $requests = $this->getAllPotentialRequests($station);
 
         foreach ($requests as $request) {
+            $track = $request->getTrack();
+
+            if (null === $track) {
+                return null;
+            }
+
             /** @var StationRequest $request */
-            if ($request->shouldPlayNow($now) && !$this->hasPlayedRecently($request->getTrack(), $station)) {
+            if ($request->shouldPlayNow($now) && !$this->hasPlayedRecently($track, $station)) {
                 return $request;
             }
         }
@@ -105,6 +111,7 @@ final class StationRequestRepository extends AbstractStationBasedRepository
                 FROM App\Entity\StationRequest sr JOIN sr.track sm
                 WHERE sr.played_at = 0
                 AND sr.station = :station
+                AND sr.track_id IS NULL
                 ORDER BY sr.skip_delay DESC, sr.id ASC
             DQL
         )->setParameter('station', $station)

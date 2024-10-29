@@ -237,7 +237,7 @@ final class QueueBuilder implements EventSubscriberInterface
                     );
                 }
 
-                if (null !== $request) {
+                if (null !== $request && null !== $request->getTrack()) {
                     $this->logger->info(
                         'Eligible request found',
                         [
@@ -275,10 +275,17 @@ final class QueueBuilder implements EventSubscriberInterface
         StationRequest $request,
         CarbonInterface $expectedPlayTime
     ): bool {
+
+        $track = $request->getTrack();
+
+        if (null === $track) {
+            return false;
+        }
+
         return
             $request->shouldPlayNow($expectedPlayTime)
             && !$this->requestRepo->hasPlayedRecently(
-                $request->getTrack(),
+                $track,
                 $request->getStation()
             );
     }
@@ -310,6 +317,11 @@ final class QueueBuilder implements EventSubscriberInterface
         $requestsByPlaylist = [];
         foreach ($requests as $request) {
             $track = $request->getTrack();
+
+            if (null === $track) {
+                continue;
+            }
+
             $playlists = $track->getPlaylists();
             foreach ($playlists as $comparedPlaylist) {
                 if ($playlist->getId() === $comparedPlaylist->getPlaylist()->getId()) {
